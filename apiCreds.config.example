@@ -1,0 +1,6 @@
+[REDDITAPI]
+client_id = YourClientID
+client_secret = YourClientSecret
+user_agent = YourAPIname
+username = YourUsername
+password = YourPassword
