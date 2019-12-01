@@ -36,6 +36,7 @@ albumTypes = ['a','album','gallery','show']
 # Functions
 def checkUserExists(grabbedName):
 	global redditorName
+	grabbedName = grabbedName.strip()
 	u = reddit.redditor(grabbedName)
 	uCheck = ''
 
@@ -53,6 +54,7 @@ def checkUserExists(grabbedName):
 
 def checkSubredditExists(grabbedName):
 	global subredditName
+	grabbedName = grabbedName.strip()
 	r = reddit.subreddit(grabbedName)
 	rCheck = ''
 	
@@ -62,7 +64,7 @@ def checkSubredditExists(grabbedName):
 		rCheck = str(e)
 
 	if r != '' and rCheck != error404 and rCheck != errorRedirect:
-		subredditName = grabbedName.strip()
+		subredditName = grabbedName
 		print('Subreddit name set to: '+subredditName)
 	else:
 		print('Couldn\'t find subreddit '+grabbedName)
@@ -196,9 +198,14 @@ def ifImgur(postLink):
 			print('Adding >> '+imageLink)
 			linkList.append(imageLink)
 	elif 'i.imgur.com' in postLink:
-		imageLink = postLinkr
-		print('Adding >> '+imageLink)
-		linkList.append(imageLink)
+		if postLinkr[-4:] == "gifv":
+			imageLink = postLinkr[:-4]+'mp4'
+			print('Adding >> '+imageLink)
+			linkList.append(imageLink)
+		else:
+			imageLink = postLinkr
+			print('Adding >> '+imageLink)
+			linkList.append(imageLink)
 	elif 'i.redd.it' in postLink:
 		imageLink = postLinkr
 		print('Adding >> '+imageLink)
@@ -237,7 +244,7 @@ def downloadImages(imageList):
 		# Remove Duplicates
 		imageList = list(dict.fromkeys(imageList))
 		count = 0
-		downloaded = 0
+		downloaded = []
 		startTime = time.time()
 		for pic in imageList:
 			count +=1
@@ -246,14 +253,17 @@ def downloadImages(imageList):
 			if os.path.exists(fullFilePath) == False:
 				print('\nDownloading '+str(count)+' of '+str(len(imageList))+' - '+pic)
 				file = wget.download(pic, str(downloadPath))
-				downloaded +=1
+				downloaded.append(fullFilePath)
 			else:
 				print('\nAlready Exists, Skipping file '+str(count)+' of '+str(len(imageList))+' - '+pic)
 		endTime = time.time()
 		timeTaken = '%.2f' % (endTime - startTime)
+		downloadSize = 0
+		for file in downloaded:
+			downloadSize += os.path.getsize(file)
 		print('\n\nFinshed!')
-		print('\nDownloaded '+str(downloaded)+' files in '+timeTaken+' seconds')
-		print('\n'+str(len(imageList)-downloaded)+' files were skipped because they exist.')
+		print('\nDownloaded '+str(len(downloaded))+' files ('+str(downloadSize/1000000)+'MB) in '+timeTaken+' seconds')
+		print('\n'+str(len(imageList)-len(downloaded))+' files were skipped because they exist.')
 		print('\nSaved to: \n'+str(downloadPath))
 		# Clear imageList
 		imageList = []
