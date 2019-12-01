@@ -45,7 +45,7 @@ def checkUserExists(grabbedName):
 		uCheck = str(e)
 
 	if u != '' and uCheck != error404 and uCheck != errorRedirect:
-		redditorName = grabbedName
+		redditorName = grabbedName.strip()
 		print('Redditor name set to: '+redditorName)
 	else:
 		print('Couldn\'t find user '+grabbedName)
@@ -62,7 +62,7 @@ def checkSubredditExists(grabbedName):
 		rCheck = str(e)
 
 	if r != '' and rCheck != error404 and rCheck != errorRedirect:
-		subredditName = grabbedName
+		subredditName = grabbedName.strip()
 		print('Subreddit name set to: '+subredditName)
 	else:
 		print('Couldn\'t find subreddit '+grabbedName)
@@ -237,15 +237,23 @@ def downloadImages(imageList):
 		# Remove Duplicates
 		imageList = list(dict.fromkeys(imageList))
 		count = 0
+		downloaded = 0
 		startTime = time.time()
 		for pic in imageList:
 			count +=1
-			print('\nDownloading '+str(count)+' of '+str(len(imageList))+' - '+pic)
-			file = wget.download(pic, str(downloadPath))
+			fileName = pic.split('/')
+			fullFilePath = os.path.join(downloadPath,str(fileName[-1]))
+			if os.path.exists(fullFilePath) == False:
+				print('\nDownloading '+str(count)+' of '+str(len(imageList))+' - '+pic)
+				file = wget.download(pic, str(downloadPath))
+				downloaded +=1
+			else:
+				print('\nAlready Exists, Skipping file '+str(count)+' of '+str(len(imageList))+' - '+pic)
 		endTime = time.time()
 		timeTaken = '%.2f' % (endTime - startTime)
 		print('\n\nFinshed!')
-		print('\nDownloaded '+str(len(imageList))+' files in '+timeTaken+' seconds')
+		print('\nDownloaded '+str(downloaded)+' files in '+timeTaken+' seconds')
+		print('\n'+str(len(imageList)-downloaded)+' files were skipped because they exist.')
 		print('\nSaved to: \n'+str(downloadPath))
 		# Clear imageList
 		imageList = []
