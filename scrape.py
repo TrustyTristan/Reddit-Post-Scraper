@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 import time
+import duplicates as dupes
 
 # Gets Reddit API Creds
 import configparser
@@ -70,6 +71,12 @@ def checkSubredditExists(grabbedName):
 		print('Couldn\'t find subreddit '+grabbedName)
 
 
+def AskHowManyImages():
+	global downloadLimit
+	print(f'Set your download limit: ')
+	downloadLimit = int(input())
+
+
 def getUserInput():
 	global subredditName, redditorName, userInput, decidedName
 	print('''
@@ -85,8 +92,9 @@ Enter:
 		indexr = listUserInput.index('r') +1
 		checkSubredditExists(listUserInput[indexr])
 		decidedName = subredditName
+		AskHowManyImages()
+		print('\nChecking subreddit '+subredditName)
 		subreddit(decidedName)
-		print('\nChecking subreddit '+redditorName)
 	elif 'user' in listUserInput:
 		indexr = listUserInput.index('user') +1
 		checkUserExists(listUserInput[indexr])
@@ -104,8 +112,9 @@ Enter:
 		elif listUserInput[-1] == 's':
 			checkSubredditExists(listUserInput[0])
 			decidedName = subredditName
-			subreddit(decidedName)
+			AskHowManyImages()
 			print('\nChecking subreddit '+subredditName)
+			subreddit(decidedName)
 		else:
 			print('''Incorrect argument specified.
 User ....... = /u
@@ -128,8 +137,9 @@ Subreddit .. = /s''')
 					print('\nChecking SubReddit '+redditorName)
 				elif redditType == 2:
 					decidedName = subredditName
+					AskHowManyImages()
+					print('\nChecking subreddit '+subredditName)
 					subreddit(decidedName)
-					print('\nChecking SubReddit '+subredditName)
 			except ValueError:
 				print('Enter 1 or 2')
 		elif redditorName != '' and subredditName == '':
@@ -138,8 +148,9 @@ Subreddit .. = /s''')
 			print('\nChecking SubReddit '+redditorName)
 		elif redditorName == '' and subredditName != '':
 			decidedName = subredditName
+			AskHowManyImages()
+			print('\nChecking subreddit '+subredditName)
 			subreddit(decidedName)
-			print('\nChecking SubReddit '+subredditName)
 		else:
 			print('Big Error: Couldn\'t find '+userInput)
 	else:
@@ -147,7 +158,6 @@ Subreddit .. = /s''')
 
 
 def gallery(postLink):
-	global listLink
 	response = requests.get(postLink, headers=headers)
 	if response.status_code == 200:
 		print(postLink+'\nFinding pictures in album!')
@@ -184,7 +194,6 @@ def gallery(postLink):
 
 
 def ifImgur(postLink):
-	global listLink
 	postLinkr = postLink
 	postLink = postLink.split('/')
 	imageLink = ''
@@ -229,20 +238,39 @@ def redditor(name):
 
 def subreddit(name):
 	subreddit = reddit.subreddit(name)
-	for submission in subreddit.top(limit=25):
+	print(f'download limit set to: {downloadLimit}')
+	for submission in subreddit.top(limit=downloadLimit):
 		ifImgur(submission.url)
 
 
 def downloadImages(imageList):
+
+	downloadPath = Path(str('/Users/trusty/Pictures/Reddit/'+decidedName))
+	storedDuplicateListPath = os.path.join(downloadPath,'DuplicateList.txt')
+	storedDuplicatesList = []
+
+	if os.path.exists(storedDuplicateListPath):
+		print('Found list of known duplicates')
+		storedDuplicatesFile = open(storedDuplicateListPath, 'r')
+		for eachDupe in storedDuplicatesFile:
+			eachDupe.split('/')
+			oldDupe = eachDupe[-1]
+			storedDuplicatesList.append(eachDupe)
+		imagesToRemoveList = [newLink for oldFile in storedDuplicatesList for newLink in imageList if oldFile in newLink]
+		imageList = dupes.Difference(imageList,imagesToRemoveList)
+
+	print('Did not find list of duplicate files')
 	if len(imageList) > 0:
 		print('\nCreating download list...')
 		print('\nFound '+str(len(imageList))+' files.')
-		downloadPath = str('/Users/trusty/Pictures/Reddit/'+decidedName)
-		downloadPath = Path(downloadPath)
+		downloadPath = Path(str('/Users/trusty/Pictures/Reddit/'+decidedName))
 		downloadPath.mkdir(exist_ok=True)
+		os.chdir(downloadPath)
 		print('\n\nMaking directory '+str(downloadPath)+'\n')
 		# Remove Duplicates
 		imageList = list(dict.fromkeys(imageList))
+		# Create/Appened Download List
+		downloadList = open(f'{decidedName}_DownloadList.txt','a')
 		count = 0
 		downloaded = []
 		startTime = time.time()
@@ -250,12 +278,14 @@ def downloadImages(imageList):
 			count +=1
 			fileName = pic.split('/')
 			fullFilePath = os.path.join(downloadPath,str(fileName[-1]))
+			downloadList.write(f'{pic}\n')
 			if os.path.exists(fullFilePath) == False:
 				print('\nDownloading '+str(count)+' of '+str(len(imageList))+' - '+pic)
 				file = wget.download(pic, str(downloadPath))
 				downloaded.append(fullFilePath)
 			else:
 				print('\nAlready Exists, Skipping file '+str(count)+' of '+str(len(imageList))+' - '+pic)
+		downloadList.close()
 		endTime = time.time()
 		timeTaken = '%.2f' % (endTime - startTime)
 		downloadSize = 0
@@ -265,8 +295,7 @@ def downloadImages(imageList):
 		print('\nDownloaded '+str(len(downloaded))+' files ('+str(downloadSize/1000000)+'MB) in '+timeTaken+' seconds')
 		print('\n'+str(len(imageList)-len(downloaded))+' files were skipped because they exist.')
 		print('\nSaved to: \n'+str(downloadPath))
-		# Clear imageList
-		imageList = []
+		dupes.analyse(decidedName)
 	else:
 		print('No pictures to download.')
 	
