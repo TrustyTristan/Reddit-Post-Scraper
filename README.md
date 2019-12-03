@@ -12,16 +12,20 @@ Paste in URL, subreddit name or users name. Download.
 
 You will need a Reddit API account
 https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example#first-steps
-..That's about it really.
+...That's about it really.
 
 
 ## To Do:
 - Subreddit filtering
 	- Subreddits can be big...
-	- Limits, currently just grabs top 25
+	- Limits, now asks for a download limit
 	- Maybe other things to filter by to only get good stuff
-- Remove duplicate pictures based on picture
-	- This should save a log, so if you try to download again, you don't download known duplicates.
+- Remove duplicate pictures based on picture - Done!
+	- Hashing should not run on pictures that have already been hashed
 - Work around for images requiring authentication
 - Understand why you can have while true for the functions
 	- Because when you do it doesn't stores old data
+- Check if been downloaded before.
+	- Created a log of download links, should this include date, or date downloaded...?
+ 	- Only check posts since that post date.
+ - Look at whatever pickle is, probably better for the lists writing
