@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Imports
 import praw
 import pandas as pd
@@ -32,6 +34,7 @@ user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36
 headers = {'User-Agent': user_agent}
 formatTypes = ['jpg','png','jpeg','gif']
 albumTypes = ['a','album','gallery','show']
+rootDownloadPath = '/Users/trusty/Pictures/'
 
 
 # Functions
@@ -73,15 +76,15 @@ def checkSubredditExists(grabbedName):
 
 def AskHowManyImages():
 	global downloadLimit
-	print(f'Set your download limit: ')
-	downloadLimit = int(input())
+	print(f'Set your download limit: \neg: 100 or month, year, hour')
+	downloadLimit = input().strip()
 
 
 def getUserInput():
 	global subredditName, redditorName, userInput, decidedName
 	print('''
 +++ Reddit scraper +++
-Takes reddit URL or name and arguments: User /u or Subreddit /s
+Takes reddit URL or name and arguments: User /u or Subreddit /r
 Enter:
 		''')
 
@@ -102,14 +105,14 @@ Enter:
 		redditor(decidedName)
 		print('\nChecking redditor '+redditorName)
 
-	# Checking if specified user or subreddit with /u /s
+	# Checking if specified user or subreddit with /u /r
 	elif len(listUserInput) == 2:
 		if listUserInput[-1] == 'u':
 			checkUserExists(listUserInput[0])
 			decidedName = redditorName
 			redditor(decidedName)
 			print('\nChecking redditor '+redditorName)
-		elif listUserInput[-1] == 's':
+		elif listUserInput[-1] == 'r':
 			checkSubredditExists(listUserInput[0])
 			decidedName = subredditName
 			AskHowManyImages()
@@ -118,7 +121,7 @@ Enter:
 		else:
 			print('''Incorrect argument specified.
 User ....... = /u
-Subreddit .. = /s''')
+Subreddit .. = /r''')
 			getUserInput()
 	elif len(listUserInput) == 1:
 		checkUserExists(listUserInput[0])
@@ -239,13 +242,32 @@ def redditor(name):
 def subreddit(name):
 	subreddit = reddit.subreddit(name)
 	print(f'download limit set to: {downloadLimit}')
-	for submission in subreddit.top(limit=downloadLimit):
-		ifImgur(submission.url)
+
+
+	if downloadLimit.isdigit():
+		for submission in subreddit.top(limit=int(downloadLimit)):
+			ifImgur(submission.url)
+	else:
+		if downloadLimit == 'all':
+			setDownloadLimit = 'all'
+		elif downloadLimit == 'year':
+			setDownloadLimit = 'year'
+		elif downloadLimit == 'month':
+			setDownloadLimit = 'month'
+		elif downloadLimit == 'week':
+			setDownloadLimit = 'week'
+		elif downloadLimit == 'day':
+			setDownloadLimit = 'day'
+		elif downloadLimit == 'hour':
+			setDownloadLimit = 'hour'
+
+		for submission in subreddit.top(setDownloadLimit):
+			ifImgur(submission.url)
 
 
 def downloadImages(imageList):
 
-	downloadPath = Path(str('/Users/trusty/Pictures/Reddit/'+decidedName))
+	downloadPath = Path(str(rootDownloadPath+decidedName))
 	storedDuplicateListPath = os.path.join(downloadPath,'DuplicateList.txt')
 	storedDuplicatesList = []
 
@@ -263,7 +285,6 @@ def downloadImages(imageList):
 	if len(imageList) > 0:
 		print('\nCreating download list...')
 		print('\nFound '+str(len(imageList))+' files.')
-		downloadPath = Path(str('/Users/trusty/Pictures/Reddit/'+decidedName))
 		downloadPath.mkdir(exist_ok=True)
 		os.chdir(downloadPath)
 		print('\n\nMaking directory '+str(downloadPath)+'\n')
